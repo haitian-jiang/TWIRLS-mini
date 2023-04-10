@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import dgl
 from model.modules import UnfoldindAndAttention , MLP
 import pdb
+from model.appnp import APPNP
 
 class GNNModel(nn.Module):
     def __init__( self , 
@@ -61,7 +62,8 @@ class GNNModel(nn.Module):
             nn.init.normal_(self.node_emb , 0 , 1e-3)
             
         # whether we can cache unfolding result
-        self.cacheable = (not self.attention) and self.num_mlp_before == 0 and self.inp_dropout <= 0 and self.learn_emb[1] <= 0
+        # self.cacheable = (not self.attention) and self.num_mlp_before == 0 and self.inp_dropout <= 0 and self.learn_emb[1] <= 0
+        self.cacheable = False
         if self.cacheable:
             self.cached_unfolding = None
 
@@ -88,13 +90,13 @@ class GNNModel(nn.Module):
             init_activate = (self.num_mlp_before > 0) and (self.num_mlp_after > 0) 
         )
 
-    def forward(self , g):
+    def forward(self , g, x=None):
 
          # use trained node embedding
         if self.learn_emb[1] > 0:
             x = self.node_emb
-        else:
-            x = g.ndata["feature"]
+        # else:
+        #     x = g.ndata["feature"]
 
         if self.cacheable: 
             # to cache unfolding result becase there is no paramaters before it

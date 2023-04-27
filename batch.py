@@ -1,11 +1,13 @@
 import torch
 from tqdm import tqdm
 from model import GNNModel, APPNP
+import dgl
 import dgl.nn as dglnn
 import torch.nn as nn
 import torch.nn.functional as F
 import pdb
 import argparse
+from torch_geometric.seed import seed_everything
 
 
 class SAGE(nn.Module):
@@ -65,23 +67,31 @@ def parse_args():
     parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--lr', type=float, default=1e-2)
     parser.add_argument('--wd', type=float, default=5e-4)
+    parser.add_argument('--device', type=int, default=0)
+    parser.add_argument('--seed', type=int, default=123)
+    parser.add_argument('--log_every', type=int, default=1)
     args = parser.parse_args()
     return args
 
 def main():
     args = parse_args()
+    seed_everything(args.seed)
     # --- load data --- #
-    if args.dataset == 'arxiv':
-        dataset = torch.load('./dataset/arxiv.pt')
-        output_channels = 40
-    elif args.dataset == 'papers100M':
-        tr = torch.load('./dataset/papers100M-train.pt')
-        va = torch.load('./dataset/papers100M-valid.pt')
-        te = torch.load('./dataset/papers100M-test.pt')
-        dataset = {'train': tr, 'valid': va, 'test': te}
-        output_channels = 172
+    dataset = torch.load(f'./dataset/{args.dataset}.pt')
+    output_channels = dataset['num_classes']
+
+    # if args.dataset == 'arxiv':
+    #     dataset = torch.load('./dataset/arxiv-shadowkhop.pt')
+    #     output_channels = 40
+    # elif args.dataset == 'papers100M':
+    #     # tr = torch.load('./dataset/papers100M-train.pt')
+    #     # va = torch.load('./dataset/papers100M-valid.pt')
+    #     # te = torch.load('./dataset/papers100M-test.pt')
+    #     # dataset = {'train': tr, 'valid': va, 'test': te}
+    #     dataset = torch.load('./dataset/papers100M-shadowkhop-5-10-15.pt')
+    #     output_channels = 172
     input_channels = dataset['train'][0].ndata['feat'].size(1)
-    device = torch.device('cuda')
+    device = torch.device(f'cuda:{args.device}')
 
 
     # --- init model --- #
@@ -97,6 +107,17 @@ def main():
         weight_decay    = args.wd , 
     )
 
+    def prepare_graph(g):
+        g = g.remove_self_loop()
+        g = g.add_self_loop()
+        return g
+    
+    dataset['train'] = [prepare_graph(g) for g in dataset['train']]
+    dataset['valid'] = [prepare_graph(g) for g in dataset['valid']]
+    dataset['test'] = [prepare_graph(g) for g in dataset['test']]
+
+    best_val_acc, best_test_acc, best_epoch = 0, 0, 0
+
     for e in range(args.epochs):
         # --- train --- #
         tot_loss = 0
@@ -105,7 +126,6 @@ def main():
             graph.ndata['feature'] = graph.ndata['feat']
             loss = train(model, graph, loss_func, optimizer)
             tot_loss += loss
-        print(tot_loss)
         # --- valid ---#
         valid_correct, valid_tot = 0, 0
         for graph in dataset['valid']:
@@ -114,7 +134,7 @@ def main():
             correct, tot = evaluate(model, graph)
             valid_correct += correct
             valid_tot += tot
-        print(f"Valid acc: {valid_correct / valid_tot * 100:.2f}%")
+        val_acc = valid_correct / valid_tot
         # --- test --- #
         test_correct, test_tot = 0, 0
         for graph in dataset['test']:
@@ -123,9 +143,18 @@ def main():
             correct, tot = evaluate(model, graph)
             test_correct += correct
             test_tot += tot
-        print(f"Test acc: {test_correct / test_tot * 100:.2f}%")
-
-            
+        test_acc = test_correct / test_tot
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_test_acc = test_acc
+            best_epoch = e
+        if args.log_every > 0 and e % args.log_every == 0:
+            print(f"Loss: {tot_loss}\t"
+                  f"Valid acc: {val_acc * 100:.2f}%\t"
+                  f"Test acc: {test_acc * 100:.2f}%")
+    print(f"Best epoch: {best_epoch}")
+    print(f"Valid acc: {best_val_acc * 100:.2f}%")
+    print(f"Test acc: {best_test_acc * 100:.2f}%")
 
 
 if __name__ == '__main__':

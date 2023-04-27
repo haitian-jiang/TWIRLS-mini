@@ -1,10 +1,10 @@
 import random
 import argparse
+import dgl
 import torch
 from torch_geometric.seed import seed_everything
 from ogb.nodeproppred import DglNodePropPredDataset
-from tqdm import trange
-import dgl
+from tqdm import trange, tqdm
 
 
 def index2mask(idx, size: int):
@@ -33,6 +33,7 @@ def parse_arg():
     parser.add_argument('--sampler', type=str, default='shadowkhop')
     parser.add_argument('--batch_size', type=int, default=1000)
     parser.add_argument('--khop', type=int, default=2)
+    parser.add_argument('--fanout', type=str, default='[5,10,15]')
     args = parser.parse_args()
     return args
 
@@ -56,10 +57,10 @@ def gen_fullkhop_subg(graph, args, new_dataset):
 
 
 def gen_shadowkhop_subg(graph, args, new_dataset):
-    sampler = dgl.dataloading.ShaDowKHopSampler([5, 10, 15])
+    sampler = dgl.dataloading.ShaDowKHopSampler(eval(args.fanout))
     for split, idx in graph.split_idx.items():
         dataloader = dgl.dataloading.DataLoader(graph, idx, sampler, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=4)
-        for input_nodes, output_nodes, subgraph in dataloader:
+        for input_nodes, output_nodes, subgraph in tqdm(dataloader):
             idx = torch.arange(len(output_nodes))
             subgraph.split_idx = idx
             subgraph.split = split
@@ -88,4 +89,4 @@ if __name__ == '__main__':
     elif args.sampler == 'shadowkhop':
         new_dataset = gen_shadowkhop_subg(graph, args, new_dataset)
     
-    torch.save(new_dataset, f'./dataset/{args.dataset}-{args.sampler}.pt')
+    torch.save(new_dataset, f'./dataset/{args.dataset}-{args.sampler}-5-20.pt')

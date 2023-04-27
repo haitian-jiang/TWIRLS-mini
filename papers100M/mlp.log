@@ -1,0 +1,101 @@
+#------------ α=1, λ=0.01 ------------#
+Valid acc: 56.07%,   Test acc: 52.73%      Epoch 1463
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 55.48%,   Test acc: 52.31%      Epoch 1360
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 52.45%,   Test acc: 49.74%      Epoch 1484
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.5, lr=0.01, wd=0.0`
+
+Valid acc: 52.94%,   Test acc: 50.09%      Epoch 1473
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.5, lr=0.01, wd=0.0005`
+
+Valid acc: 55.92%,   Test acc: 52.74%      Epoch 1153
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 55.49%,   Test acc: 52.33%      Epoch 1006
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 52.86%,   Test acc: 50.02%      Epoch 831
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.5, lr=0.01, wd=0.0005`
+
+Valid acc: 52.44%,   Test acc: 49.69%      Epoch 1851
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.01, dropout=0.5, lr=0.01, wd=0.0`
+
+
+#------------ α=1, λ=0.1 ------------#
+Valid acc: 64.32%,   Test acc: 61.18%      Epoch 727
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 63.79%,   Test acc: 60.93%      Epoch 1576
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 61.68%,   Test acc: 58.70%      Epoch 1535
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.5, lr=0.01, wd=0.0005`
+
+Valid acc: 62.10%,   Test acc: 58.97%      Epoch 471
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.5, lr=0.01, wd=0.0`
+
+Valid acc: 63.72%,   Test acc: 60.74%      Epoch 1315
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 64.64%,   Test acc: 61.34%      Epoch 654
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 61.53%,   Test acc: 58.67%      Epoch 1502
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.5, lr=0.01, wd=0.0005`
+
+Valid acc: 62.19%,   Test acc: 58.90%      Epoch 1285
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=0.1, dropout=0.5, lr=0.01, wd=0.0`
+
+#------------ α=1, λ=1 ------------#
+Valid acc: 68.10%,   Test acc: 64.73%      Epoch 1553
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 66.76%,   Test acc: 63.98%      Epoch 1981
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 66.41%,   Test acc: 63.27%      Epoch 1509
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.5, lr=0.01, wd=0.0`
+
+Valid acc: 64.57%,   Test acc: 61.74%      Epoch 1931
+`256, K=8, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.5, lr=0.01, wd=0.0005`
+
+Valid acc: 66.25%,   Test acc: 63.37%      Epoch 1845
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 67.67%,   Test acc: 64.33%      Epoch 1501
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 62.21%,   Test acc: 59.81%      Epoch 1476
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.5, lr=0.01, wd=0.0005`
+
+Valid acc: 65.91%,   Test acc: 62.70%      Epoch 1585
+`256, K=16, MLP=[0,3], alpha=1.0, lmbd=1.0, dropout=0.5, lr=0.01, wd=0.0`
+
+#------------ α=0.1, λ=1, K=32 ------------#
+Valid acc: 68.00%,   Test acc: 64.81%      Epoch 646
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=1.0, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 67.30%,   Test acc: 64.45%      Epoch 1173
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=1.0, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 66.09%,   Test acc: 63.01%      Epoch 910
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=1.0, dropout=0.5, lr=0.01, wd=0.0`
+
+Valid acc: 65.73%,   Test acc: 62.94%      Epoch 957
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=1.0, dropout=0.5, lr=0.01, wd=0.0005`
+
+#------------ α=0.1, λ=10, K=32 ------------#
+Valid acc: 60.71%,   Test acc: 57.68%      Epoch 1781
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=10.0, dropout=0.2, lr=0.01, wd=0.0005`
+
+Valid acc: 65.57%,   Test acc: 62.26%      Epoch 1974
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=10.0, dropout=0.5, lr=0.01, wd=0.0`
+
+Valid acc: 67.50%,   Test acc: 64.08%      Epoch 1509
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=10.0, dropout=0.2, lr=0.01, wd=0.0`
+
+Valid acc: 55.76%,   Test acc: 53.50%      Epoch 700
+`256, K=32, MLP=[0,3], alpha=0.1, lmbd=10.0, dropout=0.5, lr=0.01, wd=0.0005`

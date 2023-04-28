@@ -70,6 +70,7 @@ def parse_args():
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--log_every', type=int, default=1)
+    parser.add_argument('--skip', type=int, default=1)
     args = parser.parse_args()
     return args
 
@@ -96,7 +97,7 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', True, args.alpha, args.lmbd, dropout=args.dropout)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', True, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip)
     # model = SAGE(input_channels, 256, output_channels)
     # model = APPNP(input_channels, [512, 512], output_channels, F.relu, 0.5, 0, 0.05, 10)
     model = model.to(device)

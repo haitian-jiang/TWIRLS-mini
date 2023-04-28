@@ -36,6 +36,7 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--batch_num', type=int, default=1)
+    parser.add_argument('--skip', type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -55,7 +56,7 @@ def main():
     feature = feature.to(device)
 
     # --- init model --- #
-    model = MLP(input_channels, args.hidden, output_channels, args.layers, args.dropout, 'batch', False)
+    model = MLP(input_channels, args.hidden, output_channels, args.layers, args.dropout, 'batch', False, skip=args.skip)
     # model = SAGE(input_channels, 256, output_channels)
     # model = APPNP(input_channels, [512, 512], output_channels, F.relu, 0.5, 0, 0.05, 10)
     model = model.to(device)
@@ -69,28 +70,28 @@ def main():
     best_val, best_test, best_epoch = 0, 0, 0
     for e in range(args.epochs):
         # --- train --- #
-        # if args.batch_num == 1:
-        #     model.train()
-        #     train_idx = split_idx['train']
-        #     output = model(feature[train_idx])
-        #     loss = loss_func(output, label[train_idx])
-        #     optimizer.zero_grad()
-        #     loss.backward()
-        #     optimizer.step()
-        #     if args.log_every > 0 and e % args.log_every == 0:
-        #         print(f"Epoch {e:02d}: loss: {loss.item():.4f}", end='\t')
-        # else:
-        model.train()
-        train_idx = split_idx['train']
-        train_loader = DataLoader(train_idx, batch_size=ceil(train_idx.size(0)/args.batch_num), shuffle=True)
-        for batch_idx in train_loader:
-            output = model(feature[batch_idx])
-            loss = loss_func(output, label[batch_idx])
+        if args.batch_num == 1:
+            model.train()
+            train_idx = split_idx['train']
+            output = model(feature[train_idx])
+            loss = loss_func(output, label[train_idx])
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        if args.log_every > 0 and e % args.log_every == 0:
-            print(f"Epoch {e:02d}: loss: {loss.item():.4f}", end='\t')
+            if args.log_every > 0 and e % args.log_every == 0:
+                print(f"Epoch {e:02d}: loss: {loss.item():.4f}", end='\t')
+        else:
+            model.train()
+            train_idx = split_idx['train']
+            train_loader = DataLoader(train_idx, batch_size=ceil(train_idx.size(0)/args.batch_num), shuffle=True)
+            for batch_idx in train_loader:
+                output = model(feature[batch_idx])
+                loss = loss_func(output, label[batch_idx])
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            if args.log_every > 0 and e % args.log_every == 0:
+                print(f"Epoch {e:02d}: loss: {loss.item():.4f}", end='\t')
         # --- valid ---#
         valid_idx = split_idx['valid']
         correct, tot = evaluate(model, feature, valid_idx, label)

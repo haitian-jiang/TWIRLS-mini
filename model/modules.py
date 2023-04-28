@@ -55,12 +55,13 @@ class UnfoldindAndAttention(nn.Module):
         return Y
 
 class MLP(nn.Module):
-    def __init__(self, input_d, hidden_d, output_d, num_layers, dropout, norm, init_activate) :
+    def __init__(self, input_d, hidden_d, output_d, num_layers, dropout, norm, init_activate, skip=False) :
         super().__init__()
 
         self.init_activate  = init_activate
         self.norm           = norm
         self.dropout        = dropout
+        self.skip           = skip
 
         self.layers = nn.ModuleList([])
 
@@ -71,6 +72,8 @@ class MLP(nn.Module):
             for k in range(num_layers - 2):
                 self.layers.append(nn.Linear(hidden_d, hidden_d))
             self.layers.append(nn.Linear(hidden_d, output_d))
+            if self.skip:
+                self.skip_conn = nn.Linear(input_d, output_d)
 
         self.norm_cnt = num_layers-1+int(init_activate) # how many norm layers we have
         if norm == "batch":
@@ -85,6 +88,9 @@ class MLP(nn.Module):
         for layer in self.layers:
             nn.init.xavier_normal_(layer.weight.data)
             nn.init.constant_     (layer.bias.data, 0)
+        if self.skip:
+            nn.init.xavier_normal_(self.skip_conn.weight.data)
+            nn.init.constant_     (self.skip_conn.bias.data, 0)
 
     def activate(self, x):
         if self.norm != "none":
@@ -97,7 +103,7 @@ class MLP(nn.Module):
 
     def forward(self, x):
         self.cur_norm_idx = 0
-
+        feat = x
         if self.init_activate:
             x = self.activate(x)
 
@@ -105,5 +111,7 @@ class MLP(nn.Module):
             x = layer(x)
             if i != len(self.layers) - 1: # do not activate in the last layer
                 x = self.activate(x)
+        if self.skip:
+            x = x + self.skip_conn(feat)
 
         return x

@@ -28,6 +28,7 @@ class GNNModel(nn.Module):
         attn_dropout= 0.0   , 
         inp_dropout = 0.0   ,
         learn_emb   = (0,0) , 
+        skip        = False ,
     ):
         super().__init__()
         self.input_d        = input_d
@@ -50,6 +51,7 @@ class GNNModel(nn.Module):
         self.attn_dropout   = attn_dropout
         self.inp_dropout    = inp_dropout
         self.learn_emb      = learn_emb
+        self.skip           = skip
 
         # ----- initialization of some variables -----
         # where to put attention
@@ -79,14 +81,14 @@ class GNNModel(nn.Module):
 
         # ----- computational modules -----
         self.mlp_bef = MLP(self.input_d , self.hidden_d , self.size_bef_unf , self.num_mlp_before , 
-                self.dropout , self.norm , init_activate = False)
+                self.dropout , self.norm , init_activate = False, skip = self.skip)
 
         self.unfolding = UnfoldindAndAttention(self.hidden_d, self.alp, self.lam, self.prop_step, self.attn_aft, 
                 self.tau, self.T, self.p, self.use_eta, self.init_att, self.attn_dropout, self.precond)
 
         # if there are really transformations before unfolding, then do init_activate in mlp_aft
         self.mlp_aft = MLP(self.size_aft_unf , self.hidden_d , self.output_d , self.num_mlp_after  , 
-            self.dropout , self.norm , 
+            self.dropout , self.norm , skip = self.skip, 
             init_activate = (self.num_mlp_before > 0) and (self.num_mlp_after > 0) 
         )
 

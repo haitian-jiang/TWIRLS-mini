@@ -1,5 +1,7 @@
 import torch
-from tqdm import tqdm
+from tqdm import tqdm, trange
+import sys
+sys.path.append('../')
 from model import GNNModel, APPNP
 import dgl
 import dgl.nn as dglnn
@@ -8,6 +10,8 @@ import torch.nn.functional as F
 import pdb
 import argparse
 from torch_geometric.seed import seed_everything
+from ogb.lsc import MAG240MDataset
+import numpy as np
 
 
 class SAGE(nn.Module):
@@ -78,20 +82,14 @@ def main():
     args = parse_args()
     seed_everything(args.seed)
     # --- load data --- #
-    dataset = torch.load(f'./dataset/{args.dataset}.pt')
-    output_channels = dataset['num_classes']
+    dataset = MAG240MDataset(root='/mnt/data/MAG240M')
+    output_channels = dataset.num_classes
+    paper_offset = dataset.num_authors + dataset.num_institutions
+    num_nodes = paper_offset + dataset.num_papers
+    num_features = dataset.num_paper_features
+    label = dataset.paper_label
 
-    # if args.dataset == 'arxiv':
-    #     dataset = torch.load('./dataset/arxiv-shadowkhop.pt')
-    #     output_channels = 40
-    # elif args.dataset == 'papers100M':
-    #     # tr = torch.load('./dataset/papers100M-train.pt')
-    #     # va = torch.load('./dataset/papers100M-valid.pt')
-    #     # te = torch.load('./dataset/papers100M-test.pt')
-    #     # dataset = {'train': tr, 'valid': va, 'test': te}
-    #     dataset = torch.load('./dataset/papers100M-shadowkhop-5-10-15.pt')
-    #     output_channels = 172
-    input_channels = dataset['train'][0].ndata['feat'].size(1)
+    input_channels =  dataset.num_paper_features
     device = torch.device(f'cuda:{args.device}')
 
 
@@ -114,34 +112,54 @@ def main():
         g = g.add_self_loop()
         return g
     
-    dataset['train'] = [prepare_graph(g) for g in dataset['train']]
-    dataset['valid'] = [prepare_graph(g) for g in dataset['valid']]
-    dataset['test'] = [prepare_graph(g) for g in dataset['test']]
+    feats = np.memmap(
+        "/mnt/data/MAG240M/full.npy",
+        mode="r",
+        dtype="float16",
+        shape=(num_nodes, num_features),
+    )
+    
+    # dataset['train'] = [prepare_graph(g) for g in dataset['train']]
+    # dataset['valid'] = [prepare_graph(g) for g in dataset['valid']]
+    # dataset['test'] = [prepare_graph(g) for g in dataset['test']]
 
     best_val_acc, best_test_acc, best_epoch = 0, 0, 0
 
     for e in range(args.epochs):
         # --- train --- #
         tot_loss = 0
-        for graph in tqdm(dataset['train']):
+        for i in trange(1113):
+            graph = torch.load(f'../dataset/MAG240M/shadow-5-15-20/train-{i}.pt')
+            graph = prepare_graph(graph)
+            graph.ndata['feat'] = torch.from_numpy(feats[graph.ndata['_ID']]).float()
+            graph.ndata['label'] = -1 * torch.zeros_like(graph.ndata['_ID']).long()
+            graph.ndata['label'][graph.split_idx] = torch.from_numpy(label[graph.ndata['_ID'][graph.split_idx] - paper_offset]).long()
             graph = graph.to(device)
-            graph.ndata['feature'] = graph.ndata['feat']
             loss = train(model, graph, loss_func, optimizer)
             tot_loss += loss
+        tot_loss /= 1113
         # --- valid ---#
         valid_correct, valid_tot = 0, 0
-        for graph in dataset['valid']:
+        for i in trange(139):
+            graph = torch.load(f'../dataset/MAG240M/shadow-5-15-20/valid-{i}.pt')
+            graph = prepare_graph(graph)
+            graph.ndata['feat'] = torch.from_numpy(feats[graph.ndata['_ID']]).float()
+            graph.ndata['label'] = -1 * torch.zeros_like(graph.ndata['_ID']).long()
+            graph.ndata['label'][graph.split_idx] = torch.from_numpy(label[graph.ndata['_ID'][graph.split_idx] - paper_offset]).long()
             graph = graph.to(device)
-            graph.ndata['feature'] = graph.ndata['feat']
             correct, tot = evaluate(model, graph)
             valid_correct += correct
             valid_tot += tot
         val_acc = valid_correct / valid_tot
         # --- test --- #
         test_correct, test_tot = 0, 0
-        for graph in dataset['test']:
+        for i in trange(89):
+            graph = torch.load(f'../dataset/MAG240M/shadow-5-15-20/test-{i}.pt')
+            graph = prepare_graph(graph)
+            graph.ndata['feat'] = torch.from_numpy(feats[graph.ndata['_ID']]).float()
+            graph.ndata['label'] = -1 * torch.zeros_like(graph.ndata['_ID']).long()
+            graph.ndata['label'][graph.split_idx] = torch.from_numpy(label[graph.ndata['_ID'][graph.split_idx] - paper_offset]).long()
             graph = graph.to(device)
-            graph.ndata['feature'] = graph.ndata['feat']
             correct, tot = evaluate(model, graph)
             test_correct += correct
             test_tot += tot

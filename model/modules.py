@@ -62,6 +62,7 @@ class MLP(nn.Module):
         self.norm           = norm
         self.dropout        = dropout
         self.skip           = skip
+        self.num_layers     = num_layers
 
         self.layers = nn.ModuleList([])
 
@@ -88,7 +89,7 @@ class MLP(nn.Module):
         for layer in self.layers:
             nn.init.xavier_normal_(layer.weight.data)
             nn.init.constant_     (layer.bias.data, 0)
-        if self.skip:
+        if self.num_layers and self.skip:
             nn.init.xavier_normal_(self.skip_conn.weight.data)
             nn.init.constant_     (self.skip_conn.bias.data, 0)
 
@@ -111,7 +112,7 @@ class MLP(nn.Module):
             x = layer(x)
             if i != len(self.layers) - 1: # do not activate in the last layer
                 x = self.activate(x)
-        if self.skip:
+        if self.num_layers and self.skip:
             x = x + self.skip_conn(feat)
 
         return x

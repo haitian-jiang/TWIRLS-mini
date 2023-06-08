@@ -1,3 +1,4 @@
+import random
 import torch
 from tqdm import tqdm
 from model import GNNModel, APPNP
@@ -62,6 +63,7 @@ def parse_args():
     parser.add_argument('--K', type=int, default=7)
     parser.add_argument('--pre_mlp', type=int, default=0)
     parser.add_argument('--aft_mlp', type=int, default=3)
+    parser.add_argument('--precond', type=int, default=1)
     parser.add_argument('--alpha', type=float, default=1)
     parser.add_argument('--lmbd', type=float, default=1)
     parser.add_argument('--dropout', type=float, default=0.5)
@@ -97,7 +99,7 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', True, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip)
     # model = SAGE(input_channels, 256, output_channels)
     elif args.model == 'APPNP':
         model = APPNP(input_channels, [args.hidden]*2, output_channels, F.relu, args.dropout, 0, args.alpha, args.K)
@@ -128,6 +130,7 @@ def main():
             graph.ndata['feature'] = graph.ndata['feat']
             loss = train(model, graph, loss_func, optimizer)
             tot_loss += loss
+            random.shuffle(dataset['train'])
         # --- valid ---#
         valid_correct, valid_tot = 0, 0
         for graph in dataset['valid']:

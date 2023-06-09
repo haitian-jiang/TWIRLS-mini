@@ -1,3 +1,43 @@
-Loss: 1689.017754137516	Valid acc: 59.32%	Test acc: 58.83%
-Loss: 1383.8575513362885	Valid acc: 61.99%	Test acc: 60.69%
-Loss: 1323.7022433280945	Valid acc: 64.03%	Test acc: 62.02%
+Loss: 1698.6768264174461	Valid acc: 59.24%	Test acc: 58.67%
+Loss: 1387.6343151330948	Valid acc: 60.37%	Test acc: 59.24%
+Loss: 1324.9870011806488	Valid acc: 63.06%	Test acc: 60.67%
+Loss: 1288.4960822463036	Valid acc: 61.63%	Test acc: 60.04%
+Loss: 1269.0565536618233	Valid acc: 64.81%	Test acc: 62.58%
+Loss: 1249.1723266243935	Valid acc: 64.76%	Test acc: 62.46%
+Loss: 1226.1660202741623	Valid acc: 64.97%	Test acc: 62.44%
+Loss: 1208.4260986447334	Valid acc: 65.38%	Test acc: 62.82%
+Loss: 1202.7870569229126	Valid acc: 66.35%	Test acc: 63.24%
+Loss: 1192.621147930622	Valid acc: 67.30%	Test acc: 64.08%
+Loss: 1177.1807224750519	Valid acc: 66.71%	Test acc: 63.80%
+Loss: 1170.0429301261902	Valid acc: 67.38%	Test acc: 63.92%
+Loss: 1149.1160097122192	Valid acc: 66.42%	Test acc: 63.31%
+Loss: 1144.4999816417694	Valid acc: 66.35%	Test acc: 63.21%
+Loss: 1130.2444798350334	Valid acc: 66.03%	Test acc: 62.67%
+Loss: 1128.4565320611	Valid acc: 67.44%	Test acc: 64.23%
+Loss: 1116.5017055273056	Valid acc: 67.33%	Test acc: 64.25%
+Loss: 1118.9194307923317	Valid acc: 67.12%	Test acc: 64.01%
+Loss: 1100.346745312214	Valid acc: 67.10%	Test acc: 63.59%
+Loss: 1100.6897807717323	Valid acc: 64.94%	Test acc: 61.91%
+Loss: 1093.0244590044022	Valid acc: 67.59%	Test acc: 64.32%
+Loss: 1087.9049175977707	Valid acc: 67.46%	Test acc: 64.17%
+Loss: 1080.3942847847939	Valid acc: 67.03%	Test acc: 63.56%
+Loss: 1076.6980910897255	Valid acc: 67.29%	Test acc: 64.05%
+Loss: 1074.5893658399582	Valid acc: 66.93%	Test acc: 63.96%
+Loss: 1061.8537432551384	Valid acc: 67.07%	Test acc: 63.83%
+Loss: 1059.5017909407616	Valid acc: 66.65%	Test acc: 63.58%
+Loss: 1059.0058750510216	Valid acc: 67.30%	Test acc: 64.08%
+Loss: 1051.4505119025707	Valid acc: 66.81%	Test acc: 63.18%
+Loss: 1047.048612833023	Valid acc: 66.98%	Test acc: 63.68%
+Loss: 1045.1198056340218	Valid acc: 67.32%	Test acc: 63.70%
+Loss: 1037.8479103446007	Valid acc: 66.61%	Test acc: 62.91%
+Loss: 1037.3616335391998	Valid acc: 67.11%	Test acc: 63.85%
+Loss: 1034.0826415419579	Valid acc: 67.09%	Test acc: 63.82%
+Loss: 1028.2029064297676	Valid acc: 67.01%	Test acc: 63.30%
+Loss: 1021.4566588401794	Valid acc: 66.95%	Test acc: 63.49%
+Loss: 1018.4058860838413	Valid acc: 66.98%	Test acc: 63.60%
+Loss: 1009.0101021528244	Valid acc: 66.99%	Test acc: 63.65%
+Loss: 1016.4938157498837	Valid acc: 67.05%	Test acc: 63.62%
+Loss: 1013.6238622367382	Valid acc: 66.55%	Test acc: 62.98%
+Best epoch: 20
+Valid acc: 67.59%
+Test acc: 64.32%

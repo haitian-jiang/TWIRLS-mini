@@ -73,6 +73,7 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--log_every', type=int, default=1)
     parser.add_argument('--skip', type=int, default=1)
+    parser.add_argument('--inp_dropout', type=float, default=0.2)
     args = parser.parse_args()
     return args
 
@@ -82,6 +83,8 @@ def main():
     # --- load data --- #
     dataset = torch.load(f'./dataset/{args.dataset}.pt')
     output_channels = dataset['num_classes']
+    if args.dataset == 'arxiv':
+        output_channels = 40
 
     # if args.dataset == 'arxiv':
     #     dataset = torch.load('./dataset/arxiv-shadowkhop.pt')
@@ -99,7 +102,7 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout)
     # model = SAGE(input_channels, 256, output_channels)
     elif args.model == 'APPNP':
         model = APPNP(input_channels, [args.hidden]*2, output_channels, F.relu, args.dropout, 0, args.alpha, args.K)

@@ -30,25 +30,25 @@ class SAGE(nn.Module):
         return h
 
 
-def train(model, graph, loss_func, optimizer):
+def train(model, graph, loss_func, optimizer, mean=None, gamma=0):
     nodes = graph.split_idx
     model.train()
-    output = model(graph, graph.ndata['feat'])[nodes]
+    output, y = model(graph, graph.ndata['feat'], mean=mean, gamma=gamma)
     labels = graph.ndata['label'][nodes]
-    loss = loss_func(output, labels)
+    loss = loss_func(output[nodes], labels)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    return loss.item()
+    return loss.item(), y.detach()
 
 
 @torch.no_grad()
 def evaluate(model, graph):
     model = model.eval()
     nodes = graph.split_idx
-    output = model(graph, graph.ndata['feat'])[nodes]
+    output, _ = model(graph, graph.ndata['feat'])
     labels = graph.ndata['label'][nodes]
-    correct = (output.argmax(-1) == labels).sum().item()
+    correct = (output[nodes].argmax(-1) == labels).sum().item()
     total = labels.size(0)
     return correct, total
 
@@ -74,6 +74,8 @@ def parse_args():
     parser.add_argument('--log_every', type=int, default=1)
     parser.add_argument('--skip', type=int, default=1)
     parser.add_argument('--inp_dropout', type=float, default=0.2)
+    parser.add_argument('--gamma', type=float, default=0.1)
+    parser.add_argument('--decay', type=float, default=0.9)
     args = parser.parse_args()
     return args
 
@@ -125,15 +127,36 @@ def main():
 
     best_val_acc, best_test_acc, best_epoch = 0, 0, 0
 
+    if args.dataset.startswith('arxiv'):
+        num_nodes = 169343 	
+    elif args.dataset.startswith('papers100M'):
+        num_nodes = 111059956
+    if args.aft_mlp == 0:
+        embd_dim = output_channels
+    elif args.pre_mlp == 0:
+        embd_dim = input_channels
+    else:
+        embd_dim = args.hidden
+    mean_full = torch.zeros(num_nodes, embd_dim, dtype=torch.float)
+    times_full = torch.zeros(num_nodes, dtype=torch.int)  # how many times a node appears in `mean_full`
+
     for e in range(args.epochs):
         # --- train --- #
         tot_loss = 0
         for graph in tqdm(dataset['train']):
             graph = graph.to(device)
             graph.ndata['feature'] = graph.ndata['feat']
-            loss = train(model, graph, loss_func, optimizer)
+            sub_to_full = graph.ndata['_ID'].to('cpu')
+            mean = mean_full[sub_to_full].to(device)
+            loss, output = train(model, graph, loss_func, optimizer, mean, args.gamma)
             tot_loss += loss
+            times = times_full[sub_to_full].to(device)
+            old_weight = args.decay * times / (times + 1)
+            new_weight = 1 - old_weight
+            new_mean = mean * old_weight.unsqueeze(1) + output * new_weight.unsqueeze(1)
+            mean_full[sub_to_full] = new_mean.detach().cpu()
             random.shuffle(dataset['train'])
+            times_full[sub_to_full] += 1
         # --- valid ---#
         valid_correct, valid_tot = 0, 0
         for graph in dataset['valid']:

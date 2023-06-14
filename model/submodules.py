@@ -22,17 +22,22 @@ class Propagate(nn.Module):
 
         return Y
 
-    def forward(self, graph, Y, X, alp, lam):
-        return (1 - alp) * Y + alp * lam * self.prop(graph, Y, lam) + alp * D_power_bias_X(graph, X, -1, lam, 1 - lam)
+    def forward(self, graph, Y, X, alp, lam, mean=None, gamma=0):
+        if mean is None:
+            return (1 - alp) * Y + alp * lam * self.prop(graph, Y, lam) + alp * D_power_bias_X(graph, X, -1, lam, 1 - lam)
+        else:
+            return (1 - alp) * Y + alp * lam * self.prop(graph, Y, lam) + alp * D_power_bias_X(graph, X, -1, lam, 1 - lam) - alp * gamma * D_power_bias_X(graph, Y-mean, -1, lam, 1 - lam)
 
 
 class PropagateNoPrecond(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, graph, Y, X, alp, lam):
-
-        return (1 - alp * lam - alp) * Y + alp * lam * normalized_AX(graph, Y) + alp * X
+    def forward(self, graph, Y, X, alp, lam, mean=None, gamma=0):
+        if mean is None:
+            return (1 - alp * lam - alp) * Y + alp * lam * normalized_AX(graph, Y) + alp * X
+        else:
+            return (1 - alp * lam - alp) * Y + alp * lam * normalized_AX(graph, Y) + alp * X - alp * gamma * (Y - mean)
 
 class Attention(nn.Module):
     def __init__(self, tau, T, p, attn_dropout = 0.0):

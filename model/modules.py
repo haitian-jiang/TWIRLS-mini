@@ -32,7 +32,7 @@ class UnfoldindAndAttention(nn.Module):
         self.attn_layer  = Attention(tau, T, p, attn_dropout) if self.attn_aft >= 0 else None
         self.etas        = nn.Parameter(tc.ones(d)) if self.use_eta else None
 
-    def forward(self , g , X):
+    def forward(self , g , X, mean=None, gamma=0):
         
         Y = X
 
@@ -46,7 +46,7 @@ class UnfoldindAndAttention(nn.Module):
         for k, layer in enumerate(self.prop_layers):
 
             # do unfolding
-            Y = layer(g, Y, X, self.alp, self.lam)
+            Y = layer(g, Y, X, self.alp, self.lam, mean=mean, gamma=gamma)
 
             # do attention at certain layer
             if k == self.attn_aft - 1:

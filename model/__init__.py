@@ -92,7 +92,7 @@ class GNNModel(nn.Module):
             init_activate = (self.num_mlp_before > 0) and (self.num_mlp_after > 0) 
         )
 
-    def forward(self , g, x=None):
+    def forward(self , g, x=None, mean=None, gamma=0):
 
          # use trained node embedding
         if self.learn_emb[1] > 0:
@@ -110,11 +110,11 @@ class GNNModel(nn.Module):
             if self.inp_dropout > 0:
                 x = F.dropout(x, self.inp_dropout, training = self.training)
             x = self.mlp_bef(x)
-            x = self.unfolding(g , x)
+            y = self.unfolding(g , x, mean=mean, gamma=gamma)
 
-        x = self.mlp_aft(x)
+        output = self.mlp_aft(y)
 
-        return x
+        return output, y
 
 
 

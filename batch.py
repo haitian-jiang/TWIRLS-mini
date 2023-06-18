@@ -76,6 +76,7 @@ def parse_args():
     parser.add_argument('--inp_dropout', type=float, default=0.2)
     parser.add_argument('--gamma', type=float, default=0.1)
     parser.add_argument('--decay', type=float, default=0.9)
+    parser.add_argument('--rec_energy', type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -104,7 +105,7 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy)
     # model = SAGE(input_channels, 256, output_channels)
     elif args.model == 'APPNP':
         model = APPNP(input_channels, [args.hidden]*2, output_channels, F.relu, args.dropout, 0, args.alpha, args.K)
@@ -186,6 +187,9 @@ def main():
     print(f"Best epoch: {best_epoch}")
     print(f"Valid acc: {best_val_acc * 100:.2f}%")
     print(f"Test acc: {best_test_acc * 100:.2f}%")
+    if args.rec_energy:
+        torch.save(model.unfolding.energy, f'./penalty-energy-{args.gamma}.pt')
+        breakpoint()
 
 
 if __name__ == '__main__':

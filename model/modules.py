@@ -54,14 +54,14 @@ class UnfoldindAndAttention(nn.Module):
             # do unfolding
             Y = layer(g, Y, X, self.alp, self.lam, mean=mean, gamma=gamma)
 
-            if self.rec_energy and self.training:
+            if self.rec_energy:
                 energy.append(self.energy_no_precond(g, Y, X, mean, gamma))
 
             # do attention at certain layer
             if k == self.attn_aft - 1:
                 g = self.attn_layer(g, Y, self.etas)
         
-        if self.rec_energy and self.training:
+        if self.rec_energy:
             self.energy.append(energy)
 
         return Y

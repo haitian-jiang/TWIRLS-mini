@@ -43,14 +43,14 @@ def train(model, graph, loss_func, optimizer, mean=None, gamma=0):
 
 
 @torch.no_grad()
-def evaluate(model, graph):
+def evaluate(model, graph, mean=None, gamma=0):
     model = model.eval()
     nodes = graph.split_idx
-    output, _ = model(graph, graph.ndata['feat'])
+    output, y = model(graph, graph.ndata['feat'], mean=mean, gamma=gamma)
     labels = graph.ndata['label'][nodes]
     correct = (output[nodes].argmax(-1) == labels).sum().item()
     total = labels.size(0)
-    return correct, total
+    return correct, total, y.detach()
 
 
 def parse_args():
@@ -156,25 +156,41 @@ def main():
             new_weight = 1 - old_weight
             new_mean = mean * old_weight.unsqueeze(1) + output * new_weight.unsqueeze(1)
             mean_full[sub_to_full] = new_mean.detach().cpu()
-            random.shuffle(dataset['train'])
             times_full[sub_to_full] += 1
+            random.shuffle(dataset['train'])
         # --- valid ---#
         valid_correct, valid_tot = 0, 0
         for graph in dataset['valid']:
             graph = graph.to(device)
             graph.ndata['feature'] = graph.ndata['feat']
-            correct, tot = evaluate(model, graph)
+            sub_to_full = graph.ndata['_ID'].to('cpu')
+            mean = mean_full[sub_to_full].to(device)
+            correct, tot, output = evaluate(model, graph, mean, args.gamma)
             valid_correct += correct
             valid_tot += tot
+            times = times_full[sub_to_full].to(device)
+            old_weight = args.decay * times / (times + 1)
+            new_weight = 1 - old_weight
+            new_mean = mean * old_weight.unsqueeze(1) + output * new_weight.unsqueeze(1)
+            mean_full[sub_to_full] = new_mean.detach().cpu()
+            times_full[sub_to_full] += 1
         val_acc = valid_correct / valid_tot
         # --- test --- #
         test_correct, test_tot = 0, 0
         for graph in dataset['test']:
             graph = graph.to(device)
             graph.ndata['feature'] = graph.ndata['feat']
-            correct, tot = evaluate(model, graph)
+            sub_to_full = graph.ndata['_ID'].to('cpu')
+            mean = mean_full[sub_to_full].to(device)
+            correct, tot, output = evaluate(model, graph, mean, args.gamma)
             test_correct += correct
             test_tot += tot
+            times = times_full[sub_to_full].to(device)
+            old_weight = args.decay * times / (times + 1)
+            new_weight = 1 - old_weight
+            new_mean = mean * old_weight.unsqueeze(1) + output * new_weight.unsqueeze(1)
+            mean_full[sub_to_full] = new_mean.detach().cpu()
+            times_full[sub_to_full] += 1
         test_acc = test_correct / test_tot
         if val_acc > best_val_acc:
             best_val_acc = val_acc

@@ -4,6 +4,7 @@ import dgl
 import torch
 from torch_geometric.seed import seed_everything
 from ogb.nodeproppred import DglNodePropPredDataset
+from igb.dataloader import IGB260MDGLDataset
 from tqdm import trange, tqdm
 
 
@@ -25,6 +26,17 @@ def preprocess_ogb_data(dataset, args):
     g.ndata['label'] = label
     return g
 
+def preprocess_igb_data(dataset, args):
+    graph = dataset[0]
+    g = dgl.to_bidirected(graph, copy_ndata=True)
+    split_idx = {}
+    split_idx['train'] = torch.where(g.ndata['train_mask'])[0]
+    split_idx['valid'] = torch.where(g.ndata['val_mask'])[0]
+    split_idx['test'] = torch.where(g.ndata['test_mask'])[0]
+    g.split_idx = split_idx
+    return g
+
+
 
 def parse_arg():
     parser = argparse.ArgumentParser()
@@ -34,6 +46,12 @@ def parse_arg():
     parser.add_argument('--batch_size', type=int, default=1000)
     parser.add_argument('--khop', type=int, default=2)
     parser.add_argument('--fanout', type=str, default='[5,10,15]')
+    parser.add_argument('--gb', type=str, default='ogb')
+    parser.add_argument('--path', type=str, default='/home/ubuntu/dataset/igb')
+    parser.add_argument('--dataset_size', type=str, default='tiny')
+    parser.add_argument('--in_memory', type=int, default=0)
+    parser.add_argument('--num_classes', type=int, default=19)
+    parser.add_argument('--synthetic', type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -72,10 +90,15 @@ if __name__ == '__main__':
     seed_everything(args.seed)
 
     # if args.dataset.lower() in ["arxiv", "products", "papers100m"]:
-    dataset = DglNodePropPredDataset(name=f'ogbn-{args.dataset}', root='/home/ubuntu/dataset')
-    graph = preprocess_ogb_data(dataset, args)
+    if args.gb == 'ogb':
+        dataset = DglNodePropPredDataset(name=f'ogbn-{args.dataset}', root='/home/ubuntu/dataset')
+        graph = preprocess_ogb_data(dataset, args)
+        args.num_classes = dataset.num_classes
+    elif args.gb == 'igb':
+        dataset = IGB260MDGLDataset(args)
+        graph = preprocess_igb_data(dataset, args)
 
-    args.num_classes = dataset.num_classes
+    
     args.num_features = graph.ndata['feat'].shape[-1]
 
     print("Dataset ready")
@@ -89,4 +112,4 @@ if __name__ == '__main__':
     elif args.sampler == 'shadowkhop':
         new_dataset = gen_shadowkhop_subg(graph, args, new_dataset)
     
-    torch.save(new_dataset, f'./dataset/{args.dataset}-{args.sampler}-5-20.pt')
+    torch.save(new_dataset, f'./dataset/{args.dataset}-{args.sampler}-10-15.pt')

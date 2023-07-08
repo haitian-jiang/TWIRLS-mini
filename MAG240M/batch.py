@@ -82,7 +82,7 @@ def main():
     args = parse_args()
     seed_everything(args.seed)
     # --- load data --- #
-    dataset = MAG240MDataset(root='/mnt/data/MAG240M')
+    dataset = MAG240MDataset(root='/home/ubuntu/mag')
     output_channels = dataset.num_classes
     paper_offset = dataset.num_authors + dataset.num_institutions
     num_nodes = paper_offset + dataset.num_papers
@@ -107,13 +107,13 @@ def main():
         weight_decay    = args.wd , 
     )
 
-    def prepare_graph(g):
-        g = g.remove_self_loop()
-        g = g.add_self_loop()
-        return g
+    # def prepare_graph(g):
+    #     g = g.remove_self_loop()
+    #     g = g.add_self_loop()
+    #     return g
     
     feats = np.memmap(
-        "/mnt/data/MAG240M/full.npy",
+        "/home/ubuntu/mag/full.npy",
         mode="r",
         dtype="float16",
         shape=(num_nodes, num_features),
@@ -130,7 +130,7 @@ def main():
         tot_loss = 0
         for i in trange(1113):
             graph = torch.load(f'../dataset/MAG240M/shadow-5-15-20/train-{i}.pt')
-            graph = prepare_graph(graph)
+            # graph = prepare_graph(graph)
             graph.ndata['feat'] = torch.from_numpy(feats[graph.ndata['_ID']]).float()
             graph.ndata['label'] = -1 * torch.zeros_like(graph.ndata['_ID']).long()
             graph.ndata['label'][graph.split_idx] = torch.from_numpy(label[graph.ndata['_ID'][graph.split_idx] - paper_offset]).long()
@@ -142,7 +142,7 @@ def main():
         valid_correct, valid_tot = 0, 0
         for i in trange(139):
             graph = torch.load(f'../dataset/MAG240M/shadow-5-15-20/valid-{i}.pt')
-            graph = prepare_graph(graph)
+            # graph = prepare_graph(graph)
             graph.ndata['feat'] = torch.from_numpy(feats[graph.ndata['_ID']]).float()
             graph.ndata['label'] = -1 * torch.zeros_like(graph.ndata['_ID']).long()
             graph.ndata['label'][graph.split_idx] = torch.from_numpy(label[graph.ndata['_ID'][graph.split_idx] - paper_offset]).long()
@@ -152,26 +152,26 @@ def main():
             valid_tot += tot
         val_acc = valid_correct / valid_tot
         # --- test --- #
-        test_correct, test_tot = 0, 0
-        for i in trange(89):
-            graph = torch.load(f'../dataset/MAG240M/shadow-5-15-20/test-{i}.pt')
-            graph = prepare_graph(graph)
-            graph.ndata['feat'] = torch.from_numpy(feats[graph.ndata['_ID']]).float()
-            graph.ndata['label'] = -1 * torch.zeros_like(graph.ndata['_ID']).long()
-            graph.ndata['label'][graph.split_idx] = torch.from_numpy(label[graph.ndata['_ID'][graph.split_idx] - paper_offset]).long()
-            graph = graph.to(device)
-            correct, tot = evaluate(model, graph)
-            test_correct += correct
-            test_tot += tot
-        test_acc = test_correct / test_tot
+        # test_correct, test_tot = 0, 0
+        # for i in trange(89):
+        #     graph = torch.load(f'../dataset/MAG240M/shadow-5-15-20/test-{i}.pt')
+        #     # graph = prepare_graph(graph)
+        #     graph.ndata['feat'] = torch.from_numpy(feats[graph.ndata['_ID']]).float()
+        #     graph.ndata['label'] = -1 * torch.zeros_like(graph.ndata['_ID']).long()
+        #     graph.ndata['label'][graph.split_idx] = torch.from_numpy(label[graph.ndata['_ID'][graph.split_idx] - paper_offset]).long()
+        #     graph = graph.to(device)
+        #     correct, tot = evaluate(model, graph)
+        #     test_correct += correct
+        #     test_tot += tot
+        # test_acc = test_correct / test_tot
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            best_test_acc = test_acc
+            # best_test_acc = test_acc
             best_epoch = e
         if args.log_every > 0 and e % args.log_every == 0:
             print(f"Loss: {tot_loss}\t"
-                  f"Valid acc: {val_acc * 100:.2f}%\t"
-                  f"Test acc: {test_acc * 100:.2f}%")
+                  f"Valid acc: {val_acc * 100:.2f}%\t")
+                #   f"Test acc: {test_acc * 100:.2f}%")
     print(f"Best epoch: {best_epoch}")
     print(f"Valid acc: {best_val_acc * 100:.2f}%")
     print(f"Test acc: {best_test_acc * 100:.2f}%")

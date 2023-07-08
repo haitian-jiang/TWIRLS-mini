@@ -64,6 +64,8 @@ def gen_shadowkhop_subg(graph, args, new_dataset):
             idx = torch.arange(len(output_nodes))
             subgraph.split_idx = idx
             subgraph.split = split
+            subgraph = subgraph.remove_self_loop()
+            subgraph = subgraph.add_self_loop()
             new_dataset[split].append(subgraph)
     return new_dataset
 
@@ -89,4 +91,4 @@ if __name__ == '__main__':
     elif args.sampler == 'shadowkhop':
         new_dataset = gen_shadowkhop_subg(graph, args, new_dataset)
     
-    torch.save(new_dataset, f'./dataset/{args.dataset}-{args.sampler}-5-20.pt')
+    torch.save(new_dataset, f'./dataset/{args.dataset}-{args.sampler}-5-10-15.pt')

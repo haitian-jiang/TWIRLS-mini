@@ -8,6 +8,11 @@ from ogb.lsc import MAG240MDataset
 from tqdm import trange, tqdm
 import numpy as np
 
+def prepare_graph(g):
+    g = g.remove_self_loop()
+    g = g.add_self_loop()
+    return g
+
 
 def index2mask(idx, size: int):
     mask = torch.zeros(size, dtype=torch.bool, device=idx.device)
@@ -63,6 +68,7 @@ def gen_shadowkhop_subg(graph, args, new_dataset):
     for split, idx in graph.split_idx.items():
         dataloader = dgl.dataloading.DataLoader(graph, idx, sampler, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=4)
         for i, (input_nodes, output_nodes, subgraph) in enumerate(tqdm(dataloader)):
+            subgraph = prepare_graph(subgraph)
             idx = torch.arange(len(output_nodes))
             subgraph.split_idx = idx
             subgraph.split = split
@@ -75,9 +81,9 @@ if __name__ == '__main__':
     seed_everything(args.seed)
 
 
-    dataset = MAG240MDataset(root='/mnt/data/MAG240M')
+    dataset = MAG240MDataset(root='/home/ubuntu/mag')
     print("[MAG240M] Loading graph")
-    (graph,), _ = dgl.load_graphs('/mnt/data/MAG240M/graph.dgl')
+    (graph,), _ = dgl.load_graphs('/home/ubuntu/mag/graph.dgl')
     graph = graph.formats(["csc"])
     # print("[MAG240M] Loading features")
     paper_offset = dataset.num_authors + dataset.num_institutions

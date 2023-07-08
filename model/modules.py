@@ -9,9 +9,10 @@ import torch.nn.functional as F
 from dgl import function as fn
 from torch.nn import init
 from .submodules import Propagate, PropagateNoPrecond , Attention
+from .functions import normalized_AX
 
 class UnfoldindAndAttention(nn.Module):
-    def __init__(self, d, alp, lam, prop_step, attn_aft, tau, T, p, use_eta, init_att , attn_dropout, precond):
+    def __init__(self, d, alp, lam, prop_step, attn_aft, tau, T, p, use_eta, init_att, attn_dropout, precond, rec_energy):
 
         super().__init__()
 
@@ -31,14 +32,18 @@ class UnfoldindAndAttention(nn.Module):
         self.init_attn   = Attention(tau, T, p, attn_dropout) if self.init_att      else None
         self.attn_layer  = Attention(tau, T, p, attn_dropout) if self.attn_aft >= 0 else None
         self.etas        = nn.Parameter(tc.ones(d)) if self.use_eta else None
+        self.energy      = []
+        self.rec_energy  = rec_energy
 
     def forward(self , g , X):
         
         Y = X
 
-
         g.edata["w"]    = tc.ones(g.number_of_edges(), 1, device = g.device)
         g.ndata["deg"]  = g.in_degrees().float()
+        
+        if self.rec_energy:
+            energy = [self.energy_no_precond(g, Y, X)]
 
         if self.init_att:
             g = self.init_attn(g, Y, self.etas)
@@ -47,12 +52,23 @@ class UnfoldindAndAttention(nn.Module):
 
             # do unfolding
             Y = layer(g, Y, X, self.alp, self.lam)
-
+            if self.rec_energy:
+                energy.append(self.energy_no_precond(g, Y, X))
             # do attention at certain layer
             if k == self.attn_aft - 1:
                 g = self.attn_layer(g, Y, self.etas)
-
+        if self.rec_energy:
+            self.energy.append(energy)
         return Y
+
+    def energy_no_precond(self, g, Y, X):
+        feat_dist = tc.norm(Y - X, p=2) ** 2
+        DADY = normalized_AX(g, Y)
+        Y_norm = tc.norm(Y, p=2) ** 2
+        YDADY = tc.sum(DADY * Y)
+        energy = feat_dist + self.lam * (Y_norm - YDADY)
+        return energy.item()
+        
 
 class MLP(nn.Module):
     def __init__(self, input_d, hidden_d, output_d, num_layers, dropout, norm, init_activate, skip=False) :

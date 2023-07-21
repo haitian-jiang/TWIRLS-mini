@@ -103,6 +103,7 @@ def main():
     device = torch.device(f'cuda:{args.device}')
 
 
+    losses = []
     # --- init model --- #
     if args.model == 'twirls':
         model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy)
@@ -132,6 +133,10 @@ def main():
         num_nodes = 169343 	
     elif args.dataset.startswith('papers100M'):
         num_nodes = 111059956
+    elif args.dataset.startswith('IGBtiny'):
+        num_nodes = 100000
+    elif args.dataset.startswith('IGBsmall'):
+        num_nodes = 1000000
     if args.aft_mlp == 0:
         embd_dim = output_channels
     elif args.pre_mlp == 0:
@@ -150,6 +155,7 @@ def main():
             sub_to_full = graph.ndata['_ID'].to('cpu')
             mean = mean_full[sub_to_full].to(device)
             loss, output = train(model, graph, loss_func, optimizer, mean, args.gamma)
+            losses.append(loss)
             tot_loss += loss
             times = times_full[sub_to_full].to(device)
             old_weight = args.decay * times / (times + 1)
@@ -205,6 +211,7 @@ def main():
     print(f"Test acc: {best_test_acc * 100:.2f}%")
     if args.rec_energy:
         torch.save(model.unfolding.energy, f'./penalty-energy-{args.gamma}.pt')
+        torch.save(losses, f'./penalty-loss-{args.gamma}.pt')
         breakpoint()
 
 

@@ -199,7 +199,8 @@ def main():
             best_test_acc = test_acc
             best_epoch = e
         if args.log_every > 0 and e % args.log_every == 0:
-            print(f"Loss: {tot_loss}\t"
+            print(f"Epoch: {e}\t"
+                  f"Loss: {tot_loss}\t"
                   f"Valid acc: {val_acc * 100:.2f}%\t"
                   f"Test acc: {test_acc * 100:.2f}%")
     print(f"Best epoch: {best_epoch}")

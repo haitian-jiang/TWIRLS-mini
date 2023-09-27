@@ -76,6 +76,7 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--log_every', type=int, default=1)
     parser.add_argument('--skip', type=int, default=1)
+    parser.add_argument('--activate', type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -96,7 +97,7 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, activate=args.activate)
     # model = SAGE(input_channels, 256, output_channels)
     elif args.model == 'APPNP':
         model = APPNP(input_channels, [args.hidden]*2, output_channels, F.relu, args.dropout, 0, args.alpha, args.K)
@@ -114,7 +115,8 @@ def main():
     #     return g
     
     feats = np.memmap(
-        "/home/ubuntu/mag/full.npy",
+        # "/home/ubuntu/mag/full.npy",
+        "/nvme2n1/full.npy",
         mode="r",
         dtype="float16",
         shape=(num_nodes, num_features),
@@ -171,7 +173,8 @@ def main():
             # best_test_acc = test_acc
             best_epoch = e
         if args.log_every > 0 and e % args.log_every == 0:
-            print(f"Loss: {tot_loss}\t"
+            print("Epoch: {e}\t"
+                  f"Loss: {tot_loss}\t"
                   f"Valid acc: {val_acc * 100:.2f}%\t")
                 #   f"Test acc: {test_acc * 100:.2f}%")
     print(f"Best epoch: {best_epoch}")

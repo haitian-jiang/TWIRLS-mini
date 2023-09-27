@@ -78,6 +78,7 @@ def parse_args():
     parser.add_argument('--skip', type=int, default=1)
     parser.add_argument('--inp_dropout', type=float, default=0.2)
     parser.add_argument('--rec_energy', type=int, default=0)
+    parser.add_argument('--activate', type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -105,7 +106,7 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy, activate=args.activate)
     # model = SAGE(input_channels, 256, output_channels)
     elif args.model == 'APPNP':
         model = APPNP(input_channels, [args.hidden]*2, output_channels, F.relu, args.dropout, 0, args.alpha, args.K)
@@ -133,6 +134,7 @@ def main():
         tot_loss = 0
         for i in trange(197):
             graph = torch.load(f'../dataset/products-10-15/train-{i}.pt')
+            # graph = torch.load(f'/nvme1n1/offline_subgraph/ogbn-products-5-10-15/train-{i}.pt')
             graph = graph.to(device)
             graph.ndata['feature'] = graph.ndata['feat']
             loss = train(model, graph, loss_func, optimizer)
@@ -164,7 +166,8 @@ def main():
             best_test_acc = test_acc
             best_epoch = e
         if args.log_every > 0 and e % args.log_every == 0:
-            print(f"Loss: {tot_loss}\t"
+            print(f"Epoch: {e}\t"
+                  f"Loss: {tot_loss}\t"
                   f"Valid acc: {val_acc * 100:.2f}%\t"
                   f"Test acc: {test_acc * 100:.2f}%")
     print(f"Best epoch: {best_epoch}")

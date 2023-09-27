@@ -12,7 +12,7 @@ from .submodules import Propagate, PropagateNoPrecond , Attention
 from .functions import normalized_AX
 
 class UnfoldindAndAttention(nn.Module):
-    def __init__(self, d, alp, lam, prop_step, attn_aft, tau, T, p, use_eta, init_att, attn_dropout, precond, rec_energy):
+    def __init__(self, d, alp, lam, prop_step, attn_aft, tau, T, p, use_eta, init_att, attn_dropout, precond, rec_energy, activate):
 
         super().__init__()
 
@@ -25,6 +25,7 @@ class UnfoldindAndAttention(nn.Module):
         self.attn_aft  = attn_aft
         self.use_eta   = use_eta
         self.init_att  = init_att
+        self.activate  = activate
 
         prop_method      = Propagate if precond else PropagateNoPrecond
         self.prop_layers = nn.ModuleList([prop_method() for _ in range(prop_step)])
@@ -52,6 +53,8 @@ class UnfoldindAndAttention(nn.Module):
 
             # do unfolding
             Y = layer(g, Y, X, self.alp, self.lam)
+            if self.activate:
+                Y = F.relu(Y)
             if self.rec_energy:
                 energy.append(self.energy_no_precond(g, Y, X))
             # do attention at certain layer

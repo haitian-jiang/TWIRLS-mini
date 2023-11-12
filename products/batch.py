@@ -85,9 +85,9 @@ def main():
     args = parse_args()
     seed_everything(args.seed)
     # --- load data --- #
-    dataset = DglNodePropPredDataset(name=f'ogbn-products', root='/home/ubuntu/dataset')
-    data, labels = dataset[0]
-    output_channels = dataset.num_classes
+    #dataset = DglNodePropPredDataset(name=f'ogbn-products', root='/home/ubuntu/dataset')
+    #data, labels = dataset[0]
+    output_channels = 47
 
     # if args.dataset == 'arxiv':
     #     dataset = torch.load('./dataset/arxiv-shadowkhop.pt')
@@ -164,7 +164,8 @@ def main():
             best_test_acc = test_acc
             best_epoch = e
         if args.log_every > 0 and e % args.log_every == 0:
-            print(f"Loss: {tot_loss}\t"
+            print(f"Epoch: {e}\t"
+                  f"Loss: {tot_loss}\t"
                   f"Valid acc: {val_acc * 100:.2f}%\t"
                   f"Test acc: {test_acc * 100:.2f}%")
     print(f"Best epoch: {best_epoch}")

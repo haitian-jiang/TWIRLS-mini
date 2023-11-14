@@ -77,7 +77,6 @@ def gen_fullkhop_subg(graph, args, new_dataset):
 
 
 def pollute(graph, percentage):
-    feature = graph.ndata['feat']
     index = torch.arange(graph.num_nodes()).tolist()
     random.shuffle(index)
     to_pollute = index[:int(percentage*len(index))]
@@ -85,6 +84,12 @@ def pollute(graph, percentage):
     random.shuffle(mapping)
     torch.save((to_pollute, mapping), f'id-map-{percentage}.pt')
     graph.ndata['feat'][to_pollute] = graph.ndata['feat'][mapping]
+    return graph
+
+def pollute_gauss(graph):
+    index, _ = torch.load('id-map-0.1.pt')
+    graph.ndata['feat'][index] = 100 * torch.randn_like(graph.ndata['feat'][index])
+    torch.save(graph.ndata['feat'][index], 'feat_100.pt')
     return graph
 
 
@@ -103,7 +108,7 @@ def gen_shadowkhop_subg(graph, args, new_dataset):
             subgraph = subgraph.remove_self_loop()
             subgraph = subgraph.add_self_loop()
             # new_dataset[split].append(subgraph)
-            torch.save(subgraph, f'../dataset/{args.dataset}-10-15-pollute/{split}-{i}.pt')
+            torch.save(subgraph, f'../dataset/{args.dataset}-10-15-pollute-gauss100/{split}-{i}.pt')
     return new_dataset
 
 if __name__ == '__main__':
@@ -124,7 +129,8 @@ if __name__ == '__main__':
 
     print("Dataset ready")
 
-    graph = pollute(graph, args.percentage)
+    # graph = pollute(graph, args.percentage)
+    graph = pollute_gauss(graph)
     print("Finished polluting graph")
 
     new_dataset = {split: [] for split in ['train', 'valid', 'test']}

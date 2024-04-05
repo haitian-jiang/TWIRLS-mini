@@ -106,6 +106,15 @@ def train(model, graph, x, y, loss_func, optimizer):
     return loss.item()
 
 
+@torch.no_grad()
+def evaluate(model, graph, x, y):
+    model = model.eval()
+    output = model(graph, x)
+    correct = (output.argmax(-1) == y).sum().item()
+    total = y.size(0)
+    return correct, total
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="PyTorch GNN")
     parser.add_argument("--dataset", type=str, default="ogbn-products")
@@ -114,9 +123,9 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=1000)
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--hidden", type=int, default=256)
-    parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument("--lr", type=float, default=0.05)
-    parser.add_argument("--wd", type=float, default=0.001)
+    parser.add_argument("--dropout", type=float, default=0.2)
+    parser.add_argument("--lr", type=float, default=0.003)
+    parser.add_argument("--wd", type=float, default=0)
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--path", type=str, default="/home/ubuntu/dataset/igb_dataset")
@@ -141,7 +150,7 @@ def main():
     if args.dataset.startswith("ogbn"):
         if args.dataset == "ogbn-products":
             to_bidirected = True
-        dataset = load_ogb(args.dataset, "/home/ubuntu/dataset", to_bidirected)
+        dataset = load_ogb(args.dataset, "/home/ubuntu/dataset/OGB", to_bidirected)
     elif args.dataset.startswith("igb"):
         if args.dataset == "igb-small":
             to_bidirected = True
@@ -183,11 +192,14 @@ def main():
     best_val_acc, best_test_acc, best_epoch = 0, 0, 0
 
     sampler = dgl.dataloading.NeighborSampler(eval(args.fanout))
+    # sampler = dgl.dataloading.LaborSampler(eval(args.fanout))
     train_nid = splitted_idx["train"]
     if args.dataset in ("igb-full", "igb-large", "igb-medium", "mag240m"):
         perm_idx = torch.randperm(train_nid.numel())[: train_nid.numel() // 10]
         train_nid = train_nid[perm_idx]
     dataloader = dgl.dataloading.DataLoader(g, train_nid, sampler, batch_size=args.batch_size, shuffle=True, drop_last=False, num_workers=0)
+    valloader = dgl.dataloading.DataLoader(g, splitted_idx["valid"], sampler, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=0)
+    testloader = dgl.dataloading.DataLoader(g, splitted_idx["test"], sampler, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=0)
 
     epoch_time_list = []
     sample_time_list = []
@@ -234,12 +246,33 @@ def main():
         feat_load_list.append(feat_load_time)
         graph_load_list.append(graph_load_time)
         train_time_list.append(training_time)
+
+        tot_correct, tot = 0, 0
+        for i, (input_nodes, output_nodes, blocks) in enumerate(tqdm(valloader)):
+            x = feats[input_nodes].float().to(device)
+            y = labels[output_nodes - label_offset].long().to(device)
+            blocks = [block.to(device) for block in blocks]
+            correct, total = evaluate(model, blocks, x, y)
+            tot_correct += correct
+            tot += total
+        val_acc = tot_correct / tot
+        tot_correct, tot = 0, 0
+        for i, (input_nodes, output_nodes, blocks) in enumerate(tqdm(testloader)):
+            x = feats[input_nodes].float().to(device)
+            y = labels[output_nodes - label_offset].long().to(device)
+            blocks = [block.to(device) for block in blocks]
+            correct, total = evaluate(model, blocks, x, y)
+            test_acc = correct / total
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_test_acc = test_acc
+            best_epoch = e
         print(
-            f"Epoch Time: {epoch_time:.3f}\t"
-            f"Sample Time: {sampling_time:.3f}\t"
-            f"Feat Load Time: {feat_load_time:.3f}\t"
-            f"Graph Load Time: {graph_load_time:.3f}\t"
-            f"Train Time: {training_time:.3f}"
+            f"Epoch: {e}\t"
+            f"Val acc: {val_acc*100:.3f}\t"
+            f"Test acc: {test_acc*100:.3f}\t"
+            f"Best val: {best_val_acc*100:.3f}\t"
+            f"Best test: {best_test_acc*100:.3f}"
         )
     print(f"Best epoch: {best_epoch}")
     print(f"Valid acc: {best_val_acc * 100:.2f}%")

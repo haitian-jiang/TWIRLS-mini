@@ -9,6 +9,7 @@ import numba
 from numba.core import types
 from numba.typed import Dict
 import numpy as np
+from ShadowLabor import ShaDowLabor
 
 
 @numba.njit
@@ -26,7 +27,7 @@ def parse_arg():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--dataset", type=str, default="ogbn-products")
-    parser.add_argument("--dir", type=str, default="/nvme1n1/offline_subgraph")
+    parser.add_argument("--dir", type=str, default="/opt/dlami/nvme/offline")
     parser.add_argument("--batch_size", type=int, default=1000)
     parser.add_argument("--fanout", type=str, default="[5,10,15]")
     parser.add_argument("--path", type=str, default="/home/ubuntu/dataset/igb_dataset")
@@ -34,6 +35,7 @@ def parse_arg():
     parser.add_argument("--in_memory", type=int, default=1)
     parser.add_argument("--num_classes", type=int, default=19)
     parser.add_argument("--synthetic", type=int, default=0)
+    parser.add_argument("--sampler", type=str, default="shadowkhop", choices=["shadowkhop", "shadowlabor", "neighbor_sampler"])
     args = parser.parse_args()
     return args
 
@@ -52,6 +54,26 @@ def gen_shadowkhop_subg(graph, split_idx, args):
                 subgraph = subgraph.remove_self_loop()
                 subgraph = subgraph.add_self_loop()
                 torch.save(subgraph, f"{output_dir}/{split}-{i}.pt")
+
+
+def gen_shadowlabor_subg(graph, split_idx, args):
+    sampler = dgl.dataloading.LaborSampler(eval(args.fanout))
+    fanout_info = args.fanout[1:-1].replace(",", "-")
+    output_dir = f"{args.dir}/{args.dataset}-{fanout_info}-lb"
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    for split, idx in split_idx.items():
+        if split == "train":
+            dataloader = dgl.dataloading.DataLoader(graph, idx, sampler, batch_size=args.batch_size, shuffle=False, drop_last=False)
+            for i, (input_nodes, output_nodes, blk) in enumerate(tqdm(dataloader)):
+                subgraph = graph.subgraph(input_nodes, relabel_nodes=True)
+                assert (input_nodes[:len(output_nodes)] == output_nodes).all()
+            # for i, (input_nodes, output_nodes, subgraph) in enumerate(tqdm(dataloader)):
+                subgraph.split_idx = torch.arange(len(output_nodes))
+                subgraph = subgraph.remove_self_loop()
+                subgraph = subgraph.add_self_loop()
+                torch.save(subgraph, f"{output_dir}/{split}-{i}.pt")
+
 
 
 def gen_neighbor_sampler_subg(graph: dgl.DGLGraph, split_idx, args):
@@ -86,7 +108,7 @@ if __name__ == "__main__":
     if args.dataset.startswith("ogbn"):
         if args.dataset == "ogbn-products":
             to_bidirected = True
-        dataset = load_ogb(args.dataset, "/home/ubuntu/dataset", to_bidirected)
+        dataset = load_ogb(args.dataset, "/opt/dlami/nvme/dataset/OGB", to_bidirected)
     elif args.dataset.startswith("igb"):
         if args.dataset == "igb-small":
             to_bidirected = True
@@ -100,5 +122,9 @@ if __name__ == "__main__":
     print("Graph total memory:", mem1 - mem, "GB")
 
     print("Dataset ready")
-    # gen_shadowkhop_subg(dataset[0], dataset[4], args)
-    gen_neighbor_sampler_subg(dataset[0], dataset[4], args)
+    if args.sampler == "shadowkhop":
+        gen_shadowkhop_subg(dataset[0], dataset[4], args)
+    elif args.sampler == "neighbor_sampler":
+        gen_neighbor_sampler_subg(dataset[0], dataset[4], args)
+    elif args.sampler == "shadowlabor":
+        gen_shadowlabor_subg(dataset[0], dataset[4], args)

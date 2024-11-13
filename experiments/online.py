@@ -51,11 +51,11 @@ def train(model, graph, x, y, loss_func, optimizer):
 
 
 @torch.no_grad()
-def evaluate(model, graph):
+def evaluate(model, graph, x, y):
     model = model.eval()
-    nodes = graph.split_idx
-    output = model(graph, graph.ndata["feat"])[nodes]
-    labels = graph.ndata["label"][nodes]
+    # nodes = graph.split_idx
+    output = model(graph, x)[:y.shape[0]]
+    labels = y[:y.shape[0]]
     correct = (output.argmax(-1) == labels).sum().item()
     total = labels.size(0)
     return correct, total
@@ -174,17 +174,22 @@ def main():
 
     sampler = dgl.dataloading.ShaDowKHopSampler(eval(args.fanout))
     # sampler = dgl.dataloading.NeighborSampler(eval(args.fanout))
-    train_nid = splitted_idx["train"][: 95102 * args.batch_size] if args.dataset == "igb-full" else splitted_idx["train"]
-    if args.dataset in ("igb-full", "igb-large", "igb-medium", "mag240m"):
-        perm_idx = torch.randperm(train_nid.numel())[:train_nid.numel() // 10]
-        train_nid = train_nid[perm_idx]
-    dataloader = dgl.dataloading.DataLoader(g, train_nid, sampler, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=0)
+    # train_nid = splitted_idx["train"][: 95102 * args.batch_size] if args.dataset == "igb-full" else splitted_idx["train"]
+    train_nid = splitted_idx["train"]
+    # if args.dataset in ("igb-full", "igb-large", "igb-medium", "mag240m"):
+    #     perm_idx = torch.randperm(train_nid.numel())[:train_nid.numel() // 10]
+    #     train_nid = train_nid[perm_idx]
+    dataloader = dgl.dataloading.DataLoader(g, train_nid, sampler, batch_size=args.batch_size, shuffle=True, drop_last=False, num_workers=0)
+    valid_loader = dgl.dataloading.DataLoader(g, splitted_idx['valid'], sampler, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=0)
+    test_loader = dgl.dataloading.DataLoader(g, splitted_idx['test'], sampler, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=0)
 
     epoch_time_list = []
     sample_time_list = []
     feat_load_list = []
     graph_load_list = []
     train_time_list = []
+
+    best_val_acc, best_test_acc, best_epoch = 0, 0, 0
 
     for e in range(args.epochs):
         # --- train --- #
@@ -218,6 +223,7 @@ def main():
 
             # torch.cuda.synchronize()
             # tic = time.time()
+        
         torch.cuda.synchronize()
         epoch_time = time.time() - start
         epoch_time_list.append(epoch_time)
@@ -232,6 +238,39 @@ def main():
             f"Graph Load Time: {graph_load_time:.3f}\t"
             f"Train Time: {training_time:.3f}"
         )
+
+        # --- valid ---#
+        valid_correct, valid_tot = 0, 0
+        for input_nodes, output_nodes, graph in tqdm(valid_loader):
+            x = feats[input_nodes].float().to(device)
+            y = labels[output_nodes - label_offset].long().to(device)
+            graph = graph.to(device)
+            correct, tot = evaluate(model, graph, x, y)
+            valid_correct += correct
+            valid_tot += tot
+        val_acc = valid_correct / valid_tot
+        # --- test --- #
+        test_correct, test_tot = 0, 0
+        for input_nodes, output_nodes, graph in tqdm(test_loader):
+            x = feats[input_nodes].float().to(device)
+            y = labels[output_nodes - label_offset].long().to(device)
+            graph = graph.to(device)
+            correct, tot = evaluate(model, graph, x, y)
+            test_correct += correct
+            test_tot += tot
+        test_acc = test_correct / test_tot
+
+
+        test_acc = test_correct / test_tot
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_test_acc = test_acc
+            best_epoch = e
+        if args.log_every > 0 and e % args.log_every == 0:
+            print(f"Epoch: {e}\t"
+                  f"Loss: {tot_loss}\t"
+                  f"Valid acc: {val_acc * 100:.2f}%\t"
+                  f"Test acc: {test_acc * 100:.2f}%")
     print(f"Best epoch: {best_epoch}")
     print(f"Valid acc: {best_val_acc * 100:.2f}%")
     print(f"Test acc: {best_test_acc * 100:.2f}%")

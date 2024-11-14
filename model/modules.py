@@ -35,7 +35,7 @@ class UnfoldindAndAttention(nn.Module):
         self.energy      = []
         self.rec_energy  = rec_energy
 
-    def forward(self , g , X):
+    def forward(self , g , X, alpha, lmbd):
         
         Y = X
 
@@ -51,7 +51,7 @@ class UnfoldindAndAttention(nn.Module):
         for k, layer in enumerate(self.prop_layers):
 
             # do unfolding
-            Y = layer(g, Y, X, self.alp, self.lam)
+            Y = layer(g, Y, X, alpha, lmbd)
             if self.rec_energy:
                 energy.append(self.energy_no_precond(g, Y, X))
             # do attention at certain layer

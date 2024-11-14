@@ -30,6 +30,7 @@ class GNNModel(nn.Module):
         learn_emb   = (0,0) , 
         skip        = False ,
         rec_energy  = False,
+        num_batch   = 1,
     ):
         super().__init__()
         self.input_d        = input_d
@@ -42,7 +43,7 @@ class GNNModel(nn.Module):
         self.precond        = precond
         self.attention      = attention
         self.alp            = alp
-        self.lam            = lam
+        self.lam            = lam  # init value, not used in training
         self.tau            = tau
         self.T              = T
         self.p              = p
@@ -54,6 +55,7 @@ class GNNModel(nn.Module):
         self.learn_emb      = learn_emb
         self.skip           = skip
         self.rec_energy     = rec_energy
+        self.num_batch      = num_batch
 
         # ----- initialization of some variables -----
         # where to put attention
@@ -94,8 +96,14 @@ class GNNModel(nn.Module):
             init_activate = (self.num_mlp_before > 0) and (self.num_mlp_after > 0) 
         )
 
-    def forward(self , g, x=None):
+        self.lmbds = nn.ParameterList([nn.Parameter(tc.tensor(float(self.lam), device='cuda')) for _ in range(self.num_batch)])
 
+    def forward(self , g, x=None, batch_id=None):
+        if batch_id is None:  # evaluation
+            lmbd = sum(self.lmbds).detach() / len(self.lmbds)
+        else:
+            lmbd = self.lmbds[batch_id]
+        alpha = 1/(1+lmbd)
          # use trained node embedding
         if self.learn_emb[1] > 0:
             x = self.node_emb
@@ -112,7 +120,7 @@ class GNNModel(nn.Module):
             if self.inp_dropout > 0:
                 x = F.dropout(x, self.inp_dropout, training = self.training)
             x = self.mlp_bef(x)
-            x = self.unfolding(g , x)
+            x = self.unfolding(g , x, alpha, lmbd)
 
         x = self.mlp_aft(x)
 

@@ -30,10 +30,10 @@ class SAGE(nn.Module):
         return h
 
 
-def train(model, graph, loss_func, optimizer):
+def train(model, graph, loss_func, optimizer, batch_id):
     nodes = graph.split_idx
     model.train()
-    output = model(graph, graph.ndata['feat'])[nodes]
+    output = model(graph, graph.ndata['feat'], batch_id)[nodes]
     labels = graph.ndata['label'][nodes]
     loss = loss_func(output, labels)
     optimizer.zero_grad()
@@ -103,14 +103,17 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy, num_batch=len(dataset['train']))
     # model = SAGE(input_channels, 256, output_channels)
     elif args.model == 'APPNP':
         model = APPNP(input_channels, [args.hidden]*2, output_channels, F.relu, args.dropout, 0, args.alpha, args.K)
     model = model.to(device)
     loss_func = torch.nn.CrossEntropyLoss(ignore_index = -100)
-    optimizer = torch.optim.Adam(
-        params          = model.parameters() , 
+    optimizer = torch.optim.Adam([
+        {'params': model.parameters()},
+        # {'params': model.lmbds, 'lr': 0.5},
+    ],
+        # params          = model.parameters() , 
         lr              = args.lr , 
         weight_decay    = args.wd , 
     )
@@ -127,12 +130,13 @@ def main():
     best_val_acc, best_test_acc, best_epoch = 0, 0, 0
 
     for e in range(args.epochs):
+        print(f"Epoch {e}", sum(model.lmbds).detach() / len(model.lmbds))
         # --- train --- #
         tot_loss = 0
-        for graph in tqdm(dataset['train']):
+        for i, graph in enumerate(tqdm(dataset['train'])):
             graph = graph.to(device)
             graph.ndata['feature'] = graph.ndata['feat']
-            loss = train(model, graph, loss_func, optimizer)
+            loss = train(model, graph, loss_func, optimizer, batch_id=i)
             tot_loss += loss
             random.shuffle(dataset['train'])
         # --- valid ---#

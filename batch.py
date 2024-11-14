@@ -75,6 +75,7 @@ def parse_args():
     parser.add_argument('--skip', type=int, default=1)
     parser.add_argument('--inp_dropout', type=float, default=0.2)
     parser.add_argument('--rec_energy', type=int, default=0)
+    parser.add_argument('--activate', type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -103,7 +104,7 @@ def main():
 
     # --- init model --- #
     if args.model == 'twirls':
-        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy)
+        model = GNNModel(input_channels, output_channels, args.hidden, args.K, args.pre_mlp, args.aft_mlp, 'none', args.precond, args.alpha, args.lmbd, dropout=args.dropout, skip=args.skip, inp_dropout=args.inp_dropout, rec_energy=args.rec_energy, activate=args.activate)
     # model = SAGE(input_channels, 256, output_channels)
     elif args.model == 'APPNP':
         model = APPNP(input_channels, [args.hidden]*2, output_channels, F.relu, args.dropout, 0, args.alpha, args.K)
